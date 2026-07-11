@@ -52,9 +52,6 @@
 
 <div id="game-area"></div>
 
-<!-- 勝利音樂：跟這個 HTML 放同一層資料夾，檔名務必完全一致 victory.mp3 -->
-<audio id="victory-sound" src="victory.mp3" preload="auto"></audio>
-
 <script>
     const lessons = {
         1: ["black", "blue", "brown", "green", "orange", "pink", "purple", "red", "white", "yellow"],
@@ -94,26 +91,64 @@
         window.speechSynthesis.speak(msg);
     }
 
+    function playVictoryFanfare() {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+        // 原創的上升琶音旋律（C 大調：Do-Mi-Sol-Do-Mi-Sol-高Do），營造勝利號角感
+        const notes = [
+            { freq: 523.25, time: 0.00, dur: 0.12 },  // C5
+            { freq: 659.25, time: 0.12, dur: 0.12 },  // E5
+            { freq: 783.99, time: 0.24, dur: 0.12 },  // G5
+            { freq: 1046.50, time: 0.36, dur: 0.25 }, // C6
+            { freq: 783.99, time: 0.61, dur: 0.10 },  // G5
+            { freq: 1046.50, time: 0.71, dur: 0.45 }  // C6 (結尾長音)
+        ];
+
+        notes.forEach(note => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'square'; // 8-bit 復古音色
+            osc.frequency.value = note.freq;
+
+            const startTime = ctx.currentTime + note.time;
+            const endTime = startTime + note.dur;
+
+            gain.gain.setValueAtTime(0.15, startTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, endTime);
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(startTime);
+            osc.stop(endTime);
+        });
+
+        // 加一層和弦，讓結尾長音更飽滿
+        const chordFreqs = [523.25, 659.25, 783.99]; // C-E-G 和弦
+        chordFreqs.forEach(freq => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.value = freq;
+
+            const startTime = ctx.currentTime + 0.71;
+            const endTime = startTime + 0.45;
+
+            gain.gain.setValueAtTime(0.08, startTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, endTime);
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(startTime);
+            osc.stop(endTime);
+        });
+    }
+
     function startGame() {
         // 使用者手勢觸發：先「解鎖」語音權限，iOS 才會允許之後的自動發音
         window.speechSynthesis.cancel();
         let unlock = new SpeechSynthesisUtterance(' ');
         unlock.volume = 0;
         window.speechSynthesis.speak(unlock);
-
-        // 同樣利用這次使用者手勢，先靜音播放再暫停一次勝利音樂，
-        // 手機瀏覽器（尤其 iOS）才會允許之後 winGame() 時真正有聲音地播放
-        const sound = document.getElementById('victory-sound');
-        if (sound) {
-            sound.volume = 0;
-            sound.play().then(() => {
-                sound.pause();
-                sound.currentTime = 0;
-                sound.volume = 1;
-            }).catch(() => {
-                sound.volume = 1;
-            });
-        }
 
         document.getElementById('start-screen').style.display = 'none';
         loadLesson();
@@ -199,13 +234,7 @@
             origin: { y: 0.6 }
         });
 
-        const sound = document.getElementById('victory-sound');
-        if (sound) {
-            sound.currentTime = 0;
-            sound.play().catch(e => {
-                console.log("勝利音樂播放失敗，原因：", e.name, e.message);
-            });
-        }
+        playVictoryFanfare();
     }
 
     // 遊戲改由 startGame() 觸發，不再是頁面載入就自動開始
