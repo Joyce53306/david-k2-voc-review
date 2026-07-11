@@ -6,7 +6,7 @@
     <style>
         body { margin: 0; overflow: hidden; background: #fffde7; font-family: 'Comic Sans MS', cursive; }
         #game-area { width: 100vw; height: 100vh; position: relative; }
-        .balloon { position: absolute; bottom: -200px; cursor: pointer; transition: transform 0.2s; }
+        .balloon { position: absolute; bottom: -300px; cursor: pointer; transition: transform 0.2s; }
         .balloon img { width: 180px; height: 180px; border-radius: 50%; border: 6px solid #ffcc80; background: white; object-fit: cover; }
         #lesson-select { position: fixed; top: 20px; left: 20px; z-index: 10; font-size: 20px; padding: 10px; border-radius: 10px; background: white; }
     </style>
@@ -28,7 +28,8 @@
 </select>
 
 <div id="game-area"></div>
-<audio id="victory-sound" src="victory.mp3"></audio>
+<!-- 強制預載入音樂 -->
+<audio id="victory-sound" src="victory.mp3" preload="auto"></audio>
 
 <script>
     const lessons = {
@@ -52,18 +53,23 @@
         currentLessonWords = [...lessons[val]];
         document.getElementById('game-area').innerHTML = "";
         currentLessonWords.forEach(w => createBalloon(w));
-        // 延遲一下再發音，避免頁面剛載入時沒聲音
-        setTimeout(nextRound, 500);
+        setTimeout(nextRound, 800);
     }
 
     function createBalloon(word) {
         let b = document.createElement('div');
         b.className = 'balloon';
         b.style.left = Math.random() * 70 + 5 + 'vw';
-        // 氣球速度放慢：從 4-7s 改為 8-12s
-        b.style.animation = `float ${Math.random() * 4 + 8}s linear infinite`;
-        b.innerHTML = `<img src="${word}.png">`;
+        // 氣球速度再次放慢：25 到 35 秒
+        b.style.animation = `float ${Math.random() * 10 + 25}s linear infinite`;
+        b.innerHTML = `<img src="${word}.png" onerror="this.src='default.png'">`;
+        
         b.onclick = () => {
+            // 點擊時再次發音，確保第一課也有聲音
+            let msg = new SpeechSynthesisUtterance(word);
+            msg.rate = 0.7; msg.pitch = 1.1;
+            window.speechSynthesis.speak(msg);
+
             if (word === currentWord) {
                 b.remove();
                 currentLessonWords = currentLessonWords.filter(w => w !== word);
@@ -77,19 +83,16 @@
     function nextRound() {
         if (currentLessonWords.length === 0) return;
         currentWord = currentLessonWords[Math.floor(Math.random() * currentLessonWords.length)];
-        
-        // 優化語音設定
         let msg = new SpeechSynthesisUtterance(currentWord);
-        msg.rate = 0.7;    // 語速稍慢，適合幼兒
-        msg.pitch = 1.2;   // 音調提高，比較活潑
-        msg.volume = 1;
+        msg.rate = 0.7; msg.pitch = 1.1;
         window.speechSynthesis.speak(msg);
     }
 
     function winGame() {
         confetti();
         const sound = document.getElementById('victory-sound');
-        if(sound) sound.play();
+        // 強制嘗試播放
+        sound.play().catch(e => console.log("音樂播放被攔截，請點擊螢幕"));
     }
 
     window.onload = loadLesson;
