@@ -30,9 +30,6 @@
 
 <div id="game-area"></div>
 
-<!-- 強制預載入音樂 -->
-<audio id="victory-sound" src="victory.mp3" preload="auto"></audio>
-
 <script>
     const lessons = {
         1: ["black", "blue", "brown", "green", "orange", "pink", "purple", "red", "white", "yellow"],
@@ -76,16 +73,29 @@
         const val = document.getElementById('lesson-select').value;
         currentLessonWords = [...lessons[val]];
         document.getElementById('game-area').innerHTML = "";
-        currentLessonWords.forEach(w => createBalloon(w));
+        const total = currentLessonWords.length;
+        currentLessonWords.forEach((w, i) => createBalloon(w, i, total));
         setTimeout(nextRound, 800);
     }
 
-    function createBalloon(word) {
+    function createBalloon(word, index, total) {
         let b = document.createElement('div');
         b.className = 'balloon';
-        b.style.left = Math.random() * 70 + 5 + 'vw';
-        // 氣球速度：25 到 35 秒
-        b.style.animation = `float ${Math.random() * 10 + 25}s linear infinite`;
+
+        // 車道分配：把可用寬度切成 total 條車道，每顆氣球固定一條，
+        // 車道內再加小範圍隨機，避免完全對齊卻不會跟鄰居重疊
+        const usableWidth = 85; // vw 範圍：5vw ~ 90vw
+        const laneWidth = usableWidth / total;
+        const jitter = laneWidth * 0.3; // 車道內留 70% 安全間距，只在 30% 範圍內隨機
+        const lanePos = 5 + index * laneWidth + laneWidth / 2;
+        b.style.left = (lanePos + (Math.random() * jitter * 2 - jitter)) + 'vw';
+
+        // 氣球速度：25 到 35 秒，並加上隨機負延遲讓出場時間錯開，避免同時擠出來
+        const duration = Math.random() * 10 + 25;
+        const delay = -(Math.random() * duration);
+        b.style.animation = `float ${duration}s linear infinite`;
+        b.style.animationDelay = `${delay}s`;
+
         b.innerHTML = `<img src="${word}.png" onerror="this.src='default.png'">`;
 
         b.onclick = () => {
@@ -111,12 +121,6 @@
 
     function winGame() {
         confetti();
-        const sound = document.getElementById('victory-sound');
-        sound.currentTime = 0;
-        sound.play().catch(e => {
-            // 印出真正的錯誤代碼，方便判斷是不是 victory.mp3 找不到（404）
-            console.log("音樂播放失敗，原因：", e.name, e.message);
-        });
     }
 
     window.onload = loadLesson;
