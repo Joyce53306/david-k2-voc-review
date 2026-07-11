@@ -1,0 +1,11 @@
+function winGame() {
+        confetti();
+        const sound = document.getElementById('victory-sound');
+        if (sound) {
+            // 嘗試播放，並加入錯誤處理
+            sound.play().catch(function(error) {
+                console.log("播放被瀏覽器阻擋，請點擊螢幕重試");
+                // 這裡可以選擇顯示一個「播放音樂」的按鈕，但通常使用者再點一下就會出來
+            });
+        }
+    }
