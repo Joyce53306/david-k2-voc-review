@@ -1,5 +1,4 @@
-內容確認沒問題，這是完整、可直接覆蓋 GitHub 的版本：
-html<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
@@ -53,6 +52,9 @@ html<!DOCTYPE html>
 
 <div id="game-area"></div>
 
+<!-- 勝利音樂：跟這個 HTML 放同一層資料夾，檔名務必完全一致 victory.mp3 -->
+<audio id="victory-sound" src="victory.mp3" preload="auto"></audio>
+
 <script>
     const lessons = {
         1: ["black", "blue", "brown", "green", "orange", "pink", "purple", "red", "white", "yellow"],
@@ -98,6 +100,20 @@ html<!DOCTYPE html>
         let unlock = new SpeechSynthesisUtterance(' ');
         unlock.volume = 0;
         window.speechSynthesis.speak(unlock);
+
+        // 同樣利用這次使用者手勢，先靜音播放再暫停一次勝利音樂，
+        // 手機瀏覽器（尤其 iOS）才會允許之後 winGame() 時真正有聲音地播放
+        const sound = document.getElementById('victory-sound');
+        if (sound) {
+            sound.volume = 0;
+            sound.play().then(() => {
+                sound.pause();
+                sound.currentTime = 0;
+                sound.volume = 1;
+            }).catch(() => {
+                sound.volume = 1;
+            });
+        }
 
         document.getElementById('start-screen').style.display = 'none';
         loadLesson();
@@ -154,7 +170,42 @@ html<!DOCTYPE html>
     }
 
     function winGame() {
-        confetti();
+        // 加強版撒花：連續噴發多次，數量更多、範圍更廣
+        const duration = 3000;
+        const end = Date.now() + duration;
+
+        (function frame() {
+            confetti({
+                particleCount: 7,
+                angle: 60,
+                spread: 55,
+                origin: { x: 0 }
+            });
+            confetti({
+                particleCount: 7,
+                angle: 120,
+                spread: 55,
+                origin: { x: 1 }
+            });
+            if (Date.now() < end) {
+                requestAnimationFrame(frame);
+            }
+        })();
+
+        // 開場加一次大爆發
+        confetti({
+            particleCount: 150,
+            spread: 100,
+            origin: { y: 0.6 }
+        });
+
+        const sound = document.getElementById('victory-sound');
+        if (sound) {
+            sound.currentTime = 0;
+            sound.play().catch(e => {
+                console.log("勝利音樂播放失敗，原因：", e.name, e.message);
+            });
+        }
     }
 
     // 遊戲改由 startGame() 觸發，不再是頁面載入就自動開始
