@@ -7,9 +7,8 @@
         body { margin: 0; overflow: hidden; background: #fffde7; font-family: 'Comic Sans MS', cursive; }
         #game-area { width: 100vw; height: 100vh; position: relative; }
         .balloon { position: absolute; bottom: -200px; cursor: pointer; transition: transform 0.2s; }
-        /* 這裡調大了泡泡尺寸：180px */
         .balloon img { width: 180px; height: 180px; border-radius: 50%; border: 6px solid #ffcc80; background: white; object-fit: cover; }
-        #lesson-select { position: fixed; top: 20px; left: 20px; z-index: 10; font-size: 20px; padding: 10px; border-radius: 10px; }
+        #lesson-select { position: fixed; top: 20px; left: 20px; z-index: 10; font-size: 20px; padding: 10px; border-radius: 10px; background: white; }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
 </head>
@@ -53,15 +52,16 @@
         currentLessonWords = [...lessons[val]];
         document.getElementById('game-area').innerHTML = "";
         currentLessonWords.forEach(w => createBalloon(w));
-        nextRound();
+        // 延遲一下再發音，避免頁面剛載入時沒聲音
+        setTimeout(nextRound, 500);
     }
 
     function createBalloon(word) {
         let b = document.createElement('div');
         b.className = 'balloon';
         b.style.left = Math.random() * 70 + 5 + 'vw';
-        b.style.animation = `float ${Math.random() * 3 + 4}s linear infinite`;
-        // 關鍵修正：現在直接讀取同層資料夾的圖片，不加 images/
+        // 氣球速度放慢：從 4-7s 改為 8-12s
+        b.style.animation = `float ${Math.random() * 4 + 8}s linear infinite`;
         b.innerHTML = `<img src="${word}.png">`;
         b.onclick = () => {
             if (word === currentWord) {
@@ -77,8 +77,12 @@
     function nextRound() {
         if (currentLessonWords.length === 0) return;
         currentWord = currentLessonWords[Math.floor(Math.random() * currentLessonWords.length)];
+        
+        // 優化語音設定
         let msg = new SpeechSynthesisUtterance(currentWord);
-        msg.rate = 0.8;
+        msg.rate = 0.7;    // 語速稍慢，適合幼兒
+        msg.pitch = 1.2;   // 音調提高，比較活潑
+        msg.volume = 1;
         window.speechSynthesis.speak(msg);
     }
 
@@ -92,3 +96,4 @@
 </script>
 <style> @keyframes float { to { bottom: 100vh; } } </style>
 </body>
+</html>
