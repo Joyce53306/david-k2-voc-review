@@ -1,7 +1,9 @@
-<!DOCTYPE html>
+內容確認沒問題，這是完整、可直接覆蓋 GitHub 的版本：
+html<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <title>David K2 VOC Review</title>
     <style>
         body { margin: 0; overflow: hidden; background: #fffde7; font-family: 'Comic Sans MS', cursive; }
@@ -10,10 +12,31 @@
         .balloon img { width: 180px; height: 180px; border-radius: 50%; border: 6px solid #ffcc80; background: white; object-fit: cover; }
         #lesson-select { position: fixed; top: 20px; left: 20px; z-index: 10; font-size: 20px; padding: 10px; border-radius: 10px; background: white; }
         @keyframes float { to { bottom: 100vh; } }
+
+        #start-screen {
+            position: fixed; inset: 0; z-index: 100;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, #ffe0b2, #fff9c4);
+            text-align: center; padding: 20px; box-sizing: border-box;
+        }
+        #start-screen h1 { font-size: 36px; color: #e65100; margin-bottom: 10px; }
+        #start-screen p { font-size: 18px; color: #6d4c41; margin-bottom: 30px; }
+        #start-btn {
+            font-family: 'Comic Sans MS', cursive; font-size: 24px; padding: 18px 50px;
+            border: none; border-radius: 50px; background: #ff7043; color: white;
+            cursor: pointer; box-shadow: 0 6px 0 #e64a19;
+        }
+        #start-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #e64a19; }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
 </head>
 <body>
+
+<div id="start-screen">
+    <h1>🎈 David's Vocabulary Game 🎈</h1>
+    <p>Tap the button to start!</p>
+    <button id="start-btn" onclick="startGame()">Start ▶</button>
+</div>
 
 <select id="lesson-select" onchange="loadLesson()">
     <option value="1">Lesson 1 (Colors)</option>
@@ -67,6 +90,17 @@
         msg.pitch = 1.1;
         if (preferredVoice) msg.voice = preferredVoice;
         window.speechSynthesis.speak(msg);
+    }
+
+    function startGame() {
+        // 使用者手勢觸發：先「解鎖」語音權限，iOS 才會允許之後的自動發音
+        window.speechSynthesis.cancel();
+        let unlock = new SpeechSynthesisUtterance(' ');
+        unlock.volume = 0;
+        window.speechSynthesis.speak(unlock);
+
+        document.getElementById('start-screen').style.display = 'none';
+        loadLesson();
     }
 
     function loadLesson() {
@@ -123,7 +157,9 @@
         confetti();
     }
 
-    window.onload = loadLesson;
+    // 遊戲改由 startGame() 觸發，不再是頁面載入就自動開始
+    // （這樣才能符合 iOS 需要使用者手勢才能發音的規定）
+
 </script>
 </body>
 </html>
