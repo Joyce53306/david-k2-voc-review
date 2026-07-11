@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>David K2 VOC Review</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #fffde7; font-family: 'Comic Sans MS', cursive; }
+        #game-area { width: 100vw; height: 100vh; position: relative; }
+        .balloon { position: absolute; bottom: -120px; cursor: pointer; transition: transform 0.2s; }
+        .balloon img { width: 120px; height: 120px; border-radius: 50%; border: 4px solid #ffcc80; background: white; }
+        #lesson-select { position: fixed; top: 20px; left: 20px; z-index: 10; font-size: 20px; padding: 10px; border-radius: 10px; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+
+<select id="lesson-select" onchange="loadLesson()">
+    <option value="1">Lesson 1 (Colors)</option>
+    <option value="2">Lesson 2 (Senses)</option>
+    <option value="3">Lesson 3 (Shapes)</option>
+    <option value="4">Lesson 4 (Things)</option>
+    <option value="5">Lesson 5 (Transport)</option>
+    <option value="6">Lesson 6 (Combo)</option>
+    <option value="7">Lesson 7 (Food/Nature)</option>
+    <option value="8">Lesson 8 (Family)</option>
+    <option value="9">Lesson 9 (Actions)</option>
+    <option value="10">Lesson 10 (Days)</option>
+</select>
+
+<div id="game-area"></div>
+<audio id="victory-sound" src="victory.mp3"></audio>
+
+<script>
+    const lessons = {
+        1: ["black", "blue", "brown", "green", "orange", "pink", "purple", "red", "white", "yellow"],
+        2: ["taste", "smell", "listen", "look", "touch"],
+        3: ["circle", "square", "triangle", "rectangle"],
+        4: ["balloons", "kittens", "roller-skates", "shoes"],
+        5: ["bike", "boat", "broom", "car", "scooter", "train"],
+        6: ["blue-t-shirt", "green-peppers", "orange-tomatoes", "red-hats", "yellow-bees"],
+        7: ["salt", "apples", "apple-tree", "chicken", "cow", "eggs", "milk", "ocean"],
+        8: ["dad", "mom", "grandpa", "grandma", "david", "brother", "sister", "rusty"],
+        9: ["sing", "play-dress-up", "dance", "do-yoga"],
+        10: ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
+    };
+    
+    let currentLessonWords = [];
+    let currentWord = "";
+
+    function loadLesson() {
+        const val = document.getElementById('lesson-select').value;
+        currentLessonWords = [...lessons[val]];
+        document.getElementById('game-area').innerHTML = "";
+        currentLessonWords.forEach(w => createBalloon(w));
+        nextRound();
+    }
+
+    function createBalloon(word) {
+        let b = document.createElement('div');
+        b.className = 'balloon';
+        b.style.left = Math.random() * 80 + 'vw';
+        b.style.animation = `float ${Math.random() * 3 + 4}s linear infinite`;
+        b.innerHTML = `<img src="images/${word}.png">`;
+        b.onclick = () => {
+            if (word === currentWord) {
+                b.remove();
+                currentLessonWords = currentLessonWords.filter(w => w !== word);
+                if (currentLessonWords.length > 0) nextRound();
+                else winGame();
+            }
+        };
+        document.getElementById('game-area').appendChild(b);
+    }
+
+    function nextRound() {
+        currentWord = currentLessonWords[Math.floor(Math.random() * currentLessonWords.length)];
+        let msg = new SpeechSynthesisUtterance(currentWord);
+        msg.rate = 0.8;
+        window.speechSynthesis.speak(msg);
+    }
+
+    function winGame() {
+        confetti();
+        document.getElementById('victory-sound').play();
+    }
+
+    // 初始化第一課
+    window.onload = loadLesson;
+</script>
+<style> @keyframes float { to { bottom: 100vh; } } </style>
+</body>
+</html>
