@@ -9,6 +9,7 @@
         .balloon { position: absolute; bottom: -300px; cursor: pointer; transition: transform 0.2s; }
         .balloon img { width: 180px; height: 180px; border-radius: 50%; border: 6px solid #ffcc80; background: white; object-fit: cover; }
         #lesson-select { position: fixed; top: 20px; left: 20px; z-index: 10; font-size: 20px; padding: 10px; border-radius: 10px; background: white; }
+        @keyframes float { to { bottom: 100vh; } }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
 </head>
@@ -28,6 +29,7 @@
 </select>
 
 <div id="game-area"></div>
+
 <!-- 強制預載入音樂 -->
 <audio id="victory-sound" src="victory.mp3" preload="auto"></audio>
 
@@ -44,9 +46,31 @@
         9: ["sing", "play-dress-up", "dance", "do-yoga"],
         10: ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
     };
-    
+
     let currentLessonWords = [];
     let currentWord = "";
+    let preferredVoice = null;
+
+    // 挑一個比較自然的英文語音，改善 monotone 的問題
+    function pickVoice() {
+        const voices = window.speechSynthesis.getVoices();
+        preferredVoice =
+            voices.find(v => /en-US/i.test(v.lang) && /Google|Natural|Samantha/i.test(v.name)) ||
+            voices.find(v => /en-US/i.test(v.lang)) ||
+            voices[0] || null;
+    }
+    window.speechSynthesis.onvoiceschanged = pickVoice;
+    pickVoice();
+
+    function speak(word) {
+        // 關鍵修正：先清空佇列，避免疊音、被截斷造成 monotone
+        window.speechSynthesis.cancel();
+        let msg = new SpeechSynthesisUtterance(word);
+        msg.rate = 0.7;
+        msg.pitch = 1.1;
+        if (preferredVoice) msg.voice = preferredVoice;
+        window.speechSynthesis.speak(msg);
+    }
 
     function loadLesson() {
         const val = document.getElementById('lesson-select').value;
@@ -60,21 +84,20 @@
         let b = document.createElement('div');
         b.className = 'balloon';
         b.style.left = Math.random() * 70 + 5 + 'vw';
-        // 氣球速度再次放慢：25 到 35 秒
+        // 氣球速度：25 到 35 秒
         b.style.animation = `float ${Math.random() * 10 + 25}s linear infinite`;
         b.innerHTML = `<img src="${word}.png" onerror="this.src='default.png'">`;
-        
-        b.onclick = () => {
-            // 點擊時再次發音，確保第一課也有聲音
-            let msg = new SpeechSynthesisUtterance(word);
-            msg.rate = 0.7; msg.pitch = 1.1;
-            window.speechSynthesis.speak(msg);
 
+        b.onclick = () => {
+            // 關鍵修正：拿掉點擊時的發音，只有換新回合才會念，避免疊音
             if (word === currentWord) {
                 b.remove();
                 currentLessonWords = currentLessonWords.filter(w => w !== word);
-                if (currentLessonWords.length > 0) nextRound();
-                else winGame();
+                if (currentLessonWords.length > 0) {
+                    nextRound();
+                } else {
+                    winGame();
+                }
             }
         };
         document.getElementById('game-area').appendChild(b);
@@ -83,20 +106,20 @@
     function nextRound() {
         if (currentLessonWords.length === 0) return;
         currentWord = currentLessonWords[Math.floor(Math.random() * currentLessonWords.length)];
-        let msg = new SpeechSynthesisUtterance(currentWord);
-        msg.rate = 0.7; msg.pitch = 1.1;
-        window.speechSynthesis.speak(msg);
+        speak(currentWord);
     }
 
     function winGame() {
         confetti();
         const sound = document.getElementById('victory-sound');
-        // 強制嘗試播放
-        sound.play().catch(e => console.log("音樂播放被攔截，請點擊螢幕"));
+        sound.currentTime = 0;
+        sound.play().catch(e => {
+            // 印出真正的錯誤代碼，方便判斷是不是 victory.mp3 找不到（404）
+            console.log("音樂播放失敗，原因：", e.name, e.message);
+        });
     }
 
     window.onload = loadLesson;
 </script>
-<style> @keyframes float { to { bottom: 100vh; } } </style>
 </body>
 </html>
