@@ -10,8 +10,14 @@
         .balloon { position: absolute; bottom: -300px; cursor: pointer; transition: transform 0.2s; }
         .balloon img { width: 180px; height: 180px; border-radius: 50%; border: 6px solid #ffcc80; background: white; object-fit: cover; }
         #lesson-select { position: fixed; top: 20px; left: 20px; z-index: 10; font-size: 20px; padding: 10px; border-radius: 10px; background: white; }
+        #repeat-btn {
+            position: fixed; top: 20px; right: 20px; z-index: 10;
+            font-family: 'Comic Sans MS', cursive; font-size: 20px; padding: 10px 20px;
+            border: none; border-radius: 10px; background: #4fc3f7; color: white;
+            cursor: pointer; box-shadow: 0 4px 0 #0288d1;
+        }
+        #repeat-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #0288d1; }
         @keyframes float { to { bottom: 100vh; } }
-
         #start-screen {
             position: fixed; inset: 0; z-index: 100;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -30,13 +36,11 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
 </head>
 <body>
-
 <div id="start-screen">
     <h1>🎈 Middle Class 🎈</h1>
     <p>Tap the button to start!</p>
     <button id="start-btn" onclick="startGame()">Start ▶</button>
 </div>
-
 <select id="lesson-select" onchange="loadLesson()">
     <option value="1">Lesson 1 (Colors)</option>
     <option value="2">Lesson 2 (Senses)</option>
@@ -49,9 +53,8 @@
     <option value="9">Lesson 9 (Actions)</option>
     <option value="10">Lesson 10 (Days)</option>
 </select>
-
 <div id="game-area"></div>
-
+<button id="repeat-btn" onclick="repeatWord()">🔊 Repeat</button>
 <script>
     const lessons = {
         1: ["black", "blue", "brown", "green", "orange", "pink", "purple", "red", "white", "yellow"],
@@ -65,11 +68,9 @@
         9: ["sing", "play-dress-up", "dance", "do-yoga"],
         10: ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
     };
-
     let currentLessonWords = [];
     let currentWord = "";
     let preferredVoice = null;
-
     // 挑一個比較自然的英文語音，改善 monotone 的問題
     function pickVoice() {
         const voices = window.speechSynthesis.getVoices();
@@ -80,7 +81,6 @@
     }
     window.speechSynthesis.onvoiceschanged = pickVoice;
     pickVoice();
-
     function speak(word) {
         // 關鍵修正：先清空佇列，避免疊音、被截斷造成 monotone
         window.speechSynthesis.cancel();
@@ -90,10 +90,8 @@
         if (preferredVoice) msg.voice = preferredVoice;
         window.speechSynthesis.speak(msg);
     }
-
     function playVictoryFanfare() {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
-
         // 原創的上升琶音旋律（C 大調：Do-Mi-Sol-Do-Mi-Sol-高Do），營造勝利號角感
         const notes = [
             { freq: 523.25, time: 0.00, dur: 0.12 },  // C5
@@ -103,25 +101,20 @@
             { freq: 783.99, time: 0.61, dur: 0.10 },  // G5
             { freq: 1046.50, time: 0.71, dur: 0.45 }  // C6 (結尾長音)
         ];
-
         notes.forEach(note => {
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
             osc.type = 'square'; // 8-bit 復古音色
             osc.frequency.value = note.freq;
-
             const startTime = ctx.currentTime + note.time;
             const endTime = startTime + note.dur;
-
             gain.gain.setValueAtTime(0.15, startTime);
             gain.gain.exponentialRampToValueAtTime(0.001, endTime);
-
             osc.connect(gain);
             gain.connect(ctx.destination);
             osc.start(startTime);
             osc.stop(endTime);
         });
-
         // 加一層和弦，讓結尾長音更飽滿
         const chordFreqs = [523.25, 659.25, 783.99]; // C-E-G 和弦
         chordFreqs.forEach(freq => {
@@ -129,31 +122,25 @@
             const gain = ctx.createGain();
             osc.type = 'triangle';
             osc.frequency.value = freq;
-
             const startTime = ctx.currentTime + 0.71;
             const endTime = startTime + 0.45;
-
             gain.gain.setValueAtTime(0.08, startTime);
             gain.gain.exponentialRampToValueAtTime(0.001, endTime);
-
             osc.connect(gain);
             gain.connect(ctx.destination);
             osc.start(startTime);
             osc.stop(endTime);
         });
     }
-
     function startGame() {
         // 使用者手勢觸發：先「解鎖」語音權限，iOS 才會允許之後的自動發音
         window.speechSynthesis.cancel();
         let unlock = new SpeechSynthesisUtterance(' ');
         unlock.volume = 0;
         window.speechSynthesis.speak(unlock);
-
         document.getElementById('start-screen').style.display = 'none';
         loadLesson();
     }
-
     function loadLesson() {
         const val = document.getElementById('lesson-select').value;
         currentLessonWords = [...lessons[val]];
@@ -162,11 +149,9 @@
         currentLessonWords.forEach((w, i) => createBalloon(w, i, total));
         setTimeout(nextRound, 800);
     }
-
     function createBalloon(word, index, total) {
         let b = document.createElement('div');
         b.className = 'balloon';
-
         // 車道分配：把可用寬度切成 total 條車道，每顆氣球固定一條，
         // 車道內再加小範圍隨機，避免完全對齊卻不會跟鄰居重疊
         const usableWidth = 85; // vw 範圍：5vw ~ 90vw
@@ -174,15 +159,12 @@
         const jitter = laneWidth * 0.3; // 車道內留 70% 安全間距，只在 30% 範圍內隨機
         const lanePos = 5 + index * laneWidth + laneWidth / 2;
         b.style.left = (lanePos + (Math.random() * jitter * 2 - jitter)) + 'vw';
-
         // 氣球速度：25 到 35 秒，並加上隨機負延遲讓出場時間錯開，避免同時擠出來
         const duration = Math.random() * 10 + 25;
         const delay = -(Math.random() * duration);
         b.style.animation = `float ${duration}s linear infinite`;
         b.style.animationDelay = `${delay}s`;
-
         b.innerHTML = `<img src="${word}.png" onerror="this.src='default.png'">`;
-
         b.onclick = () => {
             // 關鍵修正：拿掉點擊時的發音，只有換新回合才會念，避免疊音
             if (word === currentWord) {
@@ -197,18 +179,18 @@
         };
         document.getElementById('game-area').appendChild(b);
     }
-
     function nextRound() {
         if (currentLessonWords.length === 0) return;
         currentWord = currentLessonWords[Math.floor(Math.random() * currentLessonWords.length)];
         speak(currentWord);
     }
-
+    function repeatWord() {
+        if (currentWord) speak(currentWord);
+    }
     function winGame() {
         // 加強版撒花：連續噴發多次，數量更多、範圍更廣
         const duration = 3000;
         const end = Date.now() + duration;
-
         (function frame() {
             confetti({
                 particleCount: 7,
@@ -226,20 +208,17 @@
                 requestAnimationFrame(frame);
             }
         })();
-
         // 開場加一次大爆發
         confetti({
             particleCount: 150,
             spread: 100,
             origin: { y: 0.6 }
         });
-
         playVictoryFanfare();
     }
-
     // 遊戲改由 startGame() 觸發，不再是頁面載入就自動開始
     // （這樣才能符合 iOS 需要使用者手勢才能發音的規定）
-
 </script>
 </body>
+</html></body>
 </html>
